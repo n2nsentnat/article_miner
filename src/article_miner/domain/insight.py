@@ -102,7 +102,11 @@ class AuditResult(BaseModel):
     """Optional Pass 3 output."""
 
     supported: bool
-    notes: str = ""
+    finding_direction: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
+    statistical_significance: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
+    clinical_meaningfulness: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
+    main_claim: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
+    notes: list[str] = Field(default_factory=list)
     raw_response: str | None = None
 
 
@@ -121,6 +125,10 @@ class PerArticleInsightResult(BaseModel):
     """Single row in a classification job."""
 
     pmid: str
+    prompt_version: str | None = None
+    model_name: str | None = None
+    input_hash: str | None = None
+    validator_version: str | None = None
     status: PerArticleStatus
     insight: ArticleInsightRecord | None = None
     error_message: str | None = None

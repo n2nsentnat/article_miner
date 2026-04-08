@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 litellm.suppress_debug_info = True
 
+_AUDIT_VALUES = {"supported", "weakly_supported", "unsupported"}
+
 
 @dataclass
 class LlmCallStats:
@@ -89,7 +91,7 @@ async def audit_classification(
         classification_json=json.dumps(classification, indent=2)[:12000],
     )
     messages = [
-        {"role": "system", "content": "You reply with JSON only: {\"supported\": bool, \"notes\": string}"},
+        {"role": "system", "content": "You output only valid JSON in the requested schema."},
         {"role": "user", "content": user},
     ]
     response = await litellm.acompletion(
@@ -100,15 +102,52 @@ async def audit_classification(
     )
     text = response.choices[0].message.content or "{}"
     inp, out = _usage_tokens(response)
+    audit = parse_audit_json(text)
+    if audit is None:
+        audit = AuditResult(
+            supported=False,
+            finding_direction="unsupported",
+            statistical_significance="unsupported",
+            clinical_meaningfulness="unsupported",
+            main_claim="unsupported",
+            notes=["audit_parse_failed"],
+            raw_response=text,
+        )
+    return audit, LlmCallStats(
+        input_tokens=inp, output_tokens=out, model=model
+    )
+
+
+def parse_audit_json(text: str) -> AuditResult | None:
     try:
         data = json.loads(text)
-        supported = bool(data.get("supported", False))
-        notes = str(data.get("notes", ""))
     except json.JSONDecodeError:
-        supported = False
-        notes = "audit_parse_failed"
-    return AuditResult(supported=supported, notes=notes, raw_response=text), LlmCallStats(
-        input_tokens=inp, output_tokens=out, model=model
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    def _coerce_verdict(key: str) -> str:
+        v = str(data.get(key, "unsupported")).strip().lower()
+        return v if v in _AUDIT_VALUES else "unsupported"
+
+    raw_notes = data.get("notes", [])
+    notes: list[str]
+    if isinstance(raw_notes, list):
+        notes = [str(n).strip() for n in raw_notes if str(n).strip()]
+    elif raw_notes is None:
+        notes = []
+    else:
+        one = str(raw_notes).strip()
+        notes = [one] if one else []
+
+    return AuditResult(
+        supported=bool(data.get("supported", False)),
+        finding_direction=_coerce_verdict("finding_direction"),  # type: ignore[arg-type]
+        statistical_significance=_coerce_verdict("statistical_significance"),  # type: ignore[arg-type]
+        clinical_meaningfulness=_coerce_verdict("clinical_meaningfulness"),  # type: ignore[arg-type]
+        main_claim=_coerce_verdict("main_claim"),  # type: ignore[arg-type]
+        notes=notes,
+        raw_response=text,
     )
 
 

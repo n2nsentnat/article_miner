@@ -76,6 +76,8 @@ After you have a `CollectionOutput` JSON from `collect-pubmed`, you can run **Pa
 - **Confidence policy**: model-reported confidence is treated as a **secondary triage signal** (recorded in reasons), not a primary trust gate. Primary gates are schema validity, grounding, deterministic contradiction flags, and high-risk labels (`mixed`, `meaningful`).
 - **Providers**: set one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` (LiteLLM). Choose a model with `--model` (e.g. `gpt-4o-mini`, `anthropic/claude-3-5-sonnet-20241022`, `gemini/gemini-1.5-flash`).
 - **Caching**: optional `--cache /path/to/cache.sqlite` keys on PMID + input hash + prompt version + model.
+- **Incremental persistence**: optional `--incremental-jsonl /path/file.jsonl` appends one `PerArticleInsightResult` per completed article (raw LLM text, extraction/validation/audit if present, final status), so long jobs are recoverable and auditable.
+- **Lineage metadata**: each per-article result row includes `prompt_version`, `model_name`, `input_hash`, and `validator_version` for reproducibility across prompt/rule changes.
 - **Prefilter routing**: prefilter is a routing decision, not a quality judgement. `no/short abstract` routes to deterministic minimal `unclear` output (`validated_but_flagged`) with explicit notes like `skipped_prefilter_no_abstract`; non-primary publication types route to `skipped_prefilter_non_primary_research:*`.
 
 ```bash

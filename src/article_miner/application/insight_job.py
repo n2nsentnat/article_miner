@@ -22,9 +22,10 @@ from article_miner.domain.insights.models import (
     ValidationPassResult,
 )
 from article_miner.infrastructure.insights.canonical_text import build_canonical_text
-from article_miner.infrastructure.insights.insight_cache import InsightCache, cache_key
+from article_miner.infrastructure.insights.insight_cache import InsightCache, cache_key, input_hash
 from article_miner.infrastructure.insights.insight_validation import merge_dict_for_audit, parse_extraction_json, run_pass2_validation
 from article_miner.infrastructure.insights.insight_validation import try_local_json_repair
+from article_miner.infrastructure.insights.insight_validation import VALIDATOR_VERSION
 from article_miner.infrastructure.insights.llm_extract import (
     LlmCallStats,
     audit_classification,
@@ -48,6 +49,7 @@ class InsightJobConfig:
     max_retries: int = 3
     enable_audit: bool = True
     cache_path: Path | None = None
+    incremental_jsonl_path: Path | None = None
     #: If set, warn when title+abstract (canonical haystack) exceeds this length.
     max_canonical_chars: int | None = 12_000
     extra_completion_kwargs: dict[str, Any] = field(default_factory=dict)
@@ -75,11 +77,19 @@ class InsightClassificationJob:
             "truncation_warning": 0,
         }
 
-        async def _one(a: Article) -> PerArticleInsightResult:
+        async def _one(idx: int, a: Article) -> tuple[int, PerArticleInsightResult]:
             async with sem:
-                return await self._process_article(a, totals)
+                return idx, await self._process_article(a, totals)
 
-        results = list(await asyncio.gather(*[_one(a) for a in collection.articles]))
+        pending = [asyncio.create_task(_one(i, a)) for i, a in enumerate(collection.articles)]
+        indexed_results: list[tuple[int, PerArticleInsightResult]] = []
+        for done in asyncio.as_completed(pending):
+            idx, row = await done
+            indexed_results.append((idx, row))
+            self._append_incremental_row(row)
+
+        indexed_results.sort(key=lambda x: x[0])
+        results = [row for _, row in indexed_results]
 
         self._cache.close()
         return InsightJobResult(
@@ -90,18 +100,32 @@ class InsightClassificationJob:
             stats=totals,
         )
 
+    def _append_incremental_row(self, row: PerArticleInsightResult) -> None:
+        path = self._config.incremental_jsonl_path
+        if path is None:
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(row.model_dump_json() + "\n")
+
     async def _process_article(self, article: Article, totals: dict[str, float]) -> PerArticleInsightResult:
         decision = prefilter_article(article)
+        in_hash = input_hash(article)
         if decision.action == PrefilterAction.SKIP:
             totals["skipped_prefilter"] += 1
             return PerArticleInsightResult(
                 pmid=article.pmid,
+                prompt_version=PROMPT_VERSION,
+                model_name=self._config.model,
+                input_hash=in_hash,
+                validator_version=VALIDATOR_VERSION,
                 status=PerArticleStatus.SKIPPED_PREFILTER,
                 prefilter_note=decision.reason,
+                raw_llm_text="",
             )
         if decision.action == PrefilterAction.MINIMAL_UNCLEAR:
             totals["validated_but_flagged"] += 1
-            return self._build_prefilter_minimal_unclear(article, decision.reason)
+            return self._build_prefilter_minimal_unclear(article, decision.reason, in_hash, self._config.model)
 
         ck = cache_key(article, self._config.model)
         cached = self._cache.get(ck)
@@ -128,6 +152,10 @@ class InsightClassificationJob:
             totals["api_failure"] += 1
             return PerArticleInsightResult(
                 pmid=article.pmid,
+                prompt_version=PROMPT_VERSION,
+                model_name=self._config.model,
+                input_hash=in_hash,
+                validator_version=VALIDATOR_VERSION,
                 status=PerArticleStatus.API_FAILURE,
                 error_message=last_err,
             )
@@ -154,6 +182,10 @@ class InsightClassificationJob:
             totals["invalid_output"] += 1
             return PerArticleInsightResult(
                 pmid=article.pmid,
+                prompt_version=PROMPT_VERSION,
+                model_name=self._config.model,
+                input_hash=in_hash,
+                validator_version=VALIDATOR_VERSION,
                 status=PerArticleStatus.INVALID_OUTPUT,
                 error_message="; ".join(err) if err else last_err,
                 raw_llm_text=raw_text[:8000],
@@ -163,7 +195,9 @@ class InsightClassificationJob:
         return await self._validate_and_finalize(article, ext, totals, raw_llm_text=raw_text)
 
     @staticmethod
-    def _build_prefilter_minimal_unclear(article: Article, reason: str | None) -> PerArticleInsightResult:
+    def _build_prefilter_minimal_unclear(
+        article: Article, reason: str | None, in_hash: str, model_name: str
+    ) -> PerArticleInsightResult:
         reason_text = reason or "skipped_prefilter_minimal_unclear"
         extraction = LlmInsightExtraction(
             pmid=article.pmid,
@@ -192,9 +226,14 @@ class InsightClassificationJob:
         )
         return PerArticleInsightResult(
             pmid=article.pmid,
+            prompt_version=PROMPT_VERSION,
+            model_name=model_name,
+            input_hash=in_hash,
+            validator_version=VALIDATOR_VERSION,
             status=PerArticleStatus.VALIDATED_BUT_FLAGGED,
             insight=record,
             prefilter_note=reason_text,
+            raw_llm_text="",
         )
 
     async def _validate_and_finalize(
@@ -255,7 +294,14 @@ class InsightClassificationJob:
                 totals["input_tokens"] += st.input_tokens
                 totals["output_tokens"] += st.output_tokens
             except Exception as exc:
-                audit_res = AuditResult(supported=False, notes=f"audit_error:{exc}")
+                audit_res = AuditResult(
+                    supported=False,
+                    finding_direction="unsupported",
+                    statistical_significance="unsupported",
+                    clinical_meaningfulness="unsupported",
+                    main_claim="unsupported",
+                    notes=[f"audit_error:{exc}"],
+                )
 
         trusted = (
             auto == AutoAcceptStatus.AUTO_ACCEPT
@@ -294,9 +340,13 @@ class InsightClassificationJob:
         )
         return PerArticleInsightResult(
             pmid=article.pmid,
+            prompt_version=PROMPT_VERSION,
+            model_name=self._config.model,
+            input_hash=input_hash(article),
+            validator_version=VALIDATOR_VERSION,
             status=st_final,
             insight=record,
-            raw_llm_text=raw_llm_text[:4000] if st_final == PerArticleStatus.INVALID_OUTPUT else None,
+            raw_llm_text=raw_llm_text[:8000],
         )
 
 

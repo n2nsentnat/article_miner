@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from article_miner.domain.collect.models import Article
 
-PROMPT_VERSION = "2026.04.08.1"
+PROMPT_VERSION = "2026.04.08.2"
 
 SYSTEM_PROMPT = """You are an evidence-grounded biomedical article classifier.
 
@@ -83,7 +83,20 @@ Abstract: {abstract}
 Proposed JSON classification (for review):
 {classification_json}
 
-Question: Are the label values and main_claim adequately supported by verbatim evidence spans that could plausibly appear in the title or abstract? Reply with JSON only: {{"supported": true or false, "notes": "one short sentence"}}"""
+Return JSON only with this exact shape:
+{{
+  "supported": true or false,
+  "finding_direction": "supported" | "weakly_supported" | "unsupported",
+  "statistical_significance": "supported" | "weakly_supported" | "unsupported",
+  "clinical_meaningfulness": "supported" | "weakly_supported" | "unsupported",
+  "main_claim": "supported" | "weakly_supported" | "unsupported",
+  "notes": ["short reason 1", "short reason 2"]
+}}
+
+Rules:
+- "supported" means clearly justified by quoted evidence.
+- "weakly_supported" means plausible but incomplete/indirect evidence.
+- "unsupported" means evidence does not justify the field."""
 
 
 def system_prompt() -> str:

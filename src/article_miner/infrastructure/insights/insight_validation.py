@@ -24,6 +24,7 @@ ALLOWED_SIG = frozenset({"significant", "not_significant", "unclear"})
 ALLOWED_CLIN = frozenset({"meaningful", "not_meaningful", "unclear"})
 
 _UNCLEAR = "unclear"
+VALIDATOR_VERSION = "2026.04.08.1"
 
 
 def _validate_enum_labels(ext: LlmInsightExtraction) -> list[str]:

@@ -43,6 +43,11 @@ def main(
         help="SQLite path for extraction cache (optional).",
     ),
     confidence: float = typer.Option(0.5, "--confidence", min=0.0, max=1.0),
+    incremental_jsonl: Path | None = typer.Option(
+        None,
+        "--incremental-jsonl",
+        help="Append per-article results as they complete (crash-resilient progress log).",
+    ),
 ) -> None:
     """Run evidence-grounded LLM insight classification (async, one article per request)."""
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("GEMINI_API_KEY")
@@ -62,7 +67,12 @@ def main(
         concurrency=concurrency,
         enable_audit=not no_audit,
         cache_path=cache,
+        incremental_jsonl_path=incremental_jsonl,
     )
+
+    if incremental_jsonl is not None:
+        incremental_jsonl.parent.mkdir(parents=True, exist_ok=True)
+        incremental_jsonl.write_text("", encoding="utf-8")
 
     result = asyncio.run(run_insight_job(collection, config))
 

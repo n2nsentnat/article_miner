@@ -12,8 +12,13 @@ from article_miner.infrastructure.insights.prompts import PROMPT_VERSION
 
 
 def cache_key(article: Article, model: str) -> str:
-    body = f"{article.pmid}|{PROMPT_VERSION}|{model}|{build_canonical_text(article)}"
+    body = f"{article.pmid}|{PROMPT_VERSION}|{model}|{input_hash(article)}"
     return hashlib.sha256(body.encode()).hexdigest()
+
+
+def input_hash(article: Article) -> str:
+    """Stable hash of canonical article input used for cache/data lineage."""
+    return hashlib.sha256(build_canonical_text(article).encode()).hexdigest()
 
 
 class InsightCache:
