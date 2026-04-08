@@ -1,0 +1,30 @@
+[project]
+name = "article-miner"
+version = "0.1.0"
+description = "CLI tool to search PubMed and export structured article JSON via NCBI E-utilities"
+readme = "README.md"
+authors = [
+    { name = "vijayaraja", email = "n2nsent@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "pydantic>=2.12.5",
+    "typer>=0.24.1",
+]
+
+[project.scripts]
+collect-pubmed = "article_miner.cli.app:run"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["uv_build>=0.9.8,<0.10.0"]
+build-backend = "uv_build"
