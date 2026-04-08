@@ -8,7 +8,7 @@ import pytest
 from typer.testing import CliRunner
 
 from article_miner.application.collect_articles import CollectArticlesService
-from article_miner.cli.app import app
+from article_miner.cli.collect_app import app
 from article_miner.domain.article import Article, CollectionOutput
 
 

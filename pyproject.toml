@@ -11,11 +11,14 @@ dependencies = [
     "httpx>=0.28.1",
     "lxml>=6.0.2",
     "pydantic>=2.12.5",
+    "rapidfuzz>=3.14.3",
     "typer>=0.24.1",
 ]
 
 [project.scripts]
-collect-pubmed = "article_miner.cli.app:run"
+collect-pubmed = "article_miner.cli.collect_app:run"
+find-pubmed-dupes = "article_miner.cli.dedup_app:run"
+pubmed-workflow = "article_miner.cli.pubmed_workflow:run"
 
 [dependency-groups]
 dev = [

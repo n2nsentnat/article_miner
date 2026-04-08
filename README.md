@@ -67,6 +67,38 @@ The file is a single object:
 
 All article objects are validated with **Pydantic** before serialization.
 
+## Finding probable duplicates
+
+PubMed often lists the **same work** under more than one PMID (preprint vs journal, meeting abstract vs paper, etc.). After collecting JSON, you can scan for **probable** duplicate groups (for human review, not automatic deletion):
+
+```bash
+uv run find-pubmed-dupes results.json -o dupes.json -m dupes.md
+```
+
+- **`-o` / `--out-json`**: machine-readable report (`methodology` field documents rules and thresholds).
+- **`-m` / `--markdown`**: short Markdown with cluster tables and optional retraction hints.
+
+Definitions, similarity metrics, scalability notes, and edge-case handling are documented in the report’s `methodology` string and in the module docstring of `article_miner.dedup.engine`.
+
+### One-shot workflow (collect + dedup)
+
+**Shell** (invokes the `uv` CLIs; requires `uv` on your `PATH`):
+
+```bash
+chmod +x scripts/pubmed_workflow.sh   # once
+./scripts/pubmed_workflow.sh -n 25 "diabetes mellitus[tiab]"
+```
+
+**Python** (same behavior, in-process—no subprocess; uses the same services as `collect-pubmed` + dedup):
+
+```bash
+uv run pubmed-workflow -n 25 "diabetes mellitus[tiab]"
+# or
+uv run python scripts/pubmed_workflow.py -n 25 "diabetes mellitus[tiab]"
+```
+
+Writes a timestamped directory (default: under the project root when `pyproject.toml` is found) with `articles.json`, `dupes.json`, and `dupes.md`. Use `-d /path/to/dir` to choose the output folder. Set `NCBI_API_KEY` / `NCBI_EMAIL` in the environment if you use them for collection.
+
 ## Behavior notes
 
 - **Search pagination**: `esearch` returns at most **10,000** IDs per call; larger requests use multiple pages.

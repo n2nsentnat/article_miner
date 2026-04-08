@@ -1,4 +1,4 @@
-"""Typer CLI — composition root for infrastructure + application layers."""
+"""Typer CLI — composition root for PubMed collection (infrastructure + application)."""
 
 from __future__ import annotations
 
@@ -100,7 +100,7 @@ def collect(
 
 
 def run() -> None:
-    """Entry point for console scripts and ``python -m article_miner.cli.app``."""
+    """Entry point for ``collect-pubmed`` and ``python -m article_miner.cli.collect_app``."""
     app()
 
 
