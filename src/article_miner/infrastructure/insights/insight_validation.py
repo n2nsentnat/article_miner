@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from pydantic import ValidationError
@@ -112,6 +113,64 @@ def parse_extraction_json(text: str) -> tuple[LlmInsightExtraction | None, list[
         return None, [str(exc)]
 
 
+_FENCE_RE = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
+_TRAILING_COMMA_RE = re.compile(r",\s*([}\]])")
+
+
+def _extract_first_json_object(text: str) -> str | None:
+    start = text.find("{")
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    return None
+
+
+def try_local_json_repair(text: str) -> str | None:
+    """Best-effort local repair before LLM repair.
+
+    Strategy:
+    1) strip markdown fences
+    2) extract first JSON object
+    3) remove trailing commas before '}' or ']'
+    """
+    if not text.strip():
+        return None
+
+    candidate = _FENCE_RE.sub("", text).strip()
+    obj_text = _extract_first_json_object(candidate)
+    if obj_text is None:
+        return None
+
+    cleaned = _TRAILING_COMMA_RE.sub(r"\1", obj_text)
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    return cleaned
+
+
 def run_pass2_validation(
     article: Article,
     ext: LlmInsightExtraction,
@@ -151,7 +210,7 @@ def run_pass2_validation(
         or ext.main_claim.confidence < confidence_threshold
     )
     if low_conf:
-        reasons.append("below_confidence_threshold")
+        reasons.append("low_confidence_triage")
 
     mixed = ext.finding_direction.value.lower() == "mixed"
     meaningful = ext.clinical_meaningfulness.value.lower() == "meaningful"
@@ -161,7 +220,7 @@ def run_pass2_validation(
     auto = AutoAcceptStatus.AUTO_ACCEPT
     if not schema_ok or not ground_ok or sem_has_error or truncation_warning:
         auto = AutoAcceptStatus.NEEDS_HUMAN_REVIEW
-    elif sem or low_conf or mixed or meaningful:
+    elif sem or mixed or meaningful:
         auto = AutoAcceptStatus.NEEDS_HUMAN_REVIEW
     else:
         reasons.append("auto_accept_eligible")

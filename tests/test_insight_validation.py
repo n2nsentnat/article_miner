@@ -9,6 +9,7 @@ from article_miner.infrastructure.insights.insight_validation import (
     grounding_checks,
     parse_extraction_json,
     run_pass2_validation,
+    try_local_json_repair,
 )
 from article_miner.infrastructure.insights.semantic_rules import run_semantic_rules
 
@@ -76,9 +77,28 @@ def test_grounding_checks_valid() -> None:
 def test_semantic_flag_significant_vs_negative_evidence() -> None:
     ext = _valid_extraction()
     ext.statistical_significance.value = "significant"
+    ext.finding_direction.evidence_spans = []
+    ext.statistical_significance.evidence_spans = ["not statistically significant"]
+    ext.clinical_meaningfulness.evidence_spans = []
+    ext.main_claim.evidence_spans = ["not statistically significant"]
     flags = run_semantic_rules(ext)
-    codes = [f.code for f in flags]
-    assert "sig_vs_evidence_neg" in codes
+    by_code = {f.code: f for f in flags}
+    assert "sig_vs_evidence_neg" in by_code
+    assert by_code["sig_vs_evidence_neg"].severity == "error"
+
+
+def test_semantic_mixed_significance_language_is_soft_flag() -> None:
+    ext = _valid_extraction()
+    ext.statistical_significance.value = "significant"
+    ext.statistical_significance.evidence_spans = [
+        "no significant difference in the primary endpoint",
+        "a statistically significant secondary benefit was observed",
+    ]
+    flags = run_semantic_rules(ext)
+    by_code = {f.code: f for f in flags}
+    assert "mixed_significance_language" in by_code
+    assert by_code["mixed_significance_language"].severity == "warning"
+    assert "sig_vs_evidence_neg" not in by_code
 
 
 def test_run_pass2() -> None:
@@ -100,6 +120,26 @@ def test_parse_extraction_json_roundtrip() -> None:
 
 def test_prefilter_skips_short() -> None:
     from article_miner.infrastructure.insights.prefilter import prefilter_article
+    from article_miner.infrastructure.insights.prefilter import PrefilterAction
 
     a = Article(pmid="9", title="Hi", abstract="short", publication_year=2020)
-    assert prefilter_article(a) == "short_abstract"
+    decision = prefilter_article(a)
+    assert decision.action == PrefilterAction.MINIMAL_UNCLEAR
+    assert decision.reason == "skipped_prefilter_short_abstract"
+
+
+def test_try_local_json_repair_strips_fence_and_extracts_object() -> None:
+    broken = """```json
+{"pmid":"1","finding_direction":{"value":"neutral","confidence":0.7,"evidence_spans":["No significant difference"]},"extra":"x"},
+```"""
+    repaired = try_local_json_repair(broken)
+    assert repaired is not None
+    parsed, err = parse_extraction_json(repaired)
+    assert parsed is None
+    assert err  # local repair only fixes JSON framing/syntax, not schema completeness
+
+
+def test_try_local_json_repair_removes_trailing_commas() -> None:
+    raw = '{"a": 1, "b": {"c": 2,},}'
+    repaired = try_local_json_repair(raw)
+    assert repaired == '{"a": 1, "b": {"c": 2}}'

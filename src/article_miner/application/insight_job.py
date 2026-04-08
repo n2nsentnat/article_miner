@@ -13,14 +13,18 @@ from article_miner.domain.insights.models import (
     ArticleInsightRecord,
     AuditResult,
     AutoAcceptStatus,
+    ClinicalFieldInsight,
+    FieldInsightBlock,
     InsightJobResult,
     LlmInsightExtraction,
     PerArticleInsightResult,
     PerArticleStatus,
+    ValidationPassResult,
 )
 from article_miner.infrastructure.insights.canonical_text import build_canonical_text
 from article_miner.infrastructure.insights.insight_cache import InsightCache, cache_key
 from article_miner.infrastructure.insights.insight_validation import merge_dict_for_audit, parse_extraction_json, run_pass2_validation
+from article_miner.infrastructure.insights.insight_validation import try_local_json_repair
 from article_miner.infrastructure.insights.llm_extract import (
     LlmCallStats,
     audit_classification,
@@ -29,6 +33,7 @@ from article_miner.infrastructure.insights.llm_extract import (
     repair_json,
 )
 from article_miner.infrastructure.insights.prefilter import prefilter_article
+from article_miner.infrastructure.insights.prefilter import PrefilterAction
 from article_miner.infrastructure.insights.prompts import PROMPT_VERSION
 
 logger = logging.getLogger(__name__)
@@ -61,7 +66,8 @@ class InsightClassificationJob:
         totals: dict[str, float] = {
             "input_tokens": 0,
             "output_tokens": 0,
-            "success_trusted": 0,
+            "auto_accepted": 0,
+            "validated_but_flagged": 0,
             "needs_review": 0,
             "invalid_output": 0,
             "api_failure": 0,
@@ -85,14 +91,17 @@ class InsightClassificationJob:
         )
 
     async def _process_article(self, article: Article, totals: dict[str, float]) -> PerArticleInsightResult:
-        skip = prefilter_article(article)
-        if skip:
+        decision = prefilter_article(article)
+        if decision.action == PrefilterAction.SKIP:
             totals["skipped_prefilter"] += 1
             return PerArticleInsightResult(
                 pmid=article.pmid,
                 status=PerArticleStatus.SKIPPED_PREFILTER,
-                prefilter_note=skip,
+                prefilter_note=decision.reason,
             )
+        if decision.action == PrefilterAction.MINIMAL_UNCLEAR:
+            totals["validated_but_flagged"] += 1
+            return self._build_prefilter_minimal_unclear(article, decision.reason)
 
         ck = cache_key(article, self._config.model)
         cached = self._cache.get(ck)
@@ -125,6 +134,13 @@ class InsightClassificationJob:
 
         ext, err = parse_extraction_json(raw_text)
         if not ext:
+            locally_repaired = try_local_json_repair(raw_text)
+            if locally_repaired:
+                ext, err = parse_extraction_json(locally_repaired)
+                if ext:
+                    raw_text = locally_repaired
+
+        if not ext:
             try:
                 repaired, st = await repair_json(self._config.model, raw_text, **kw)
                 totals["input_tokens"] += st.input_tokens
@@ -145,6 +161,41 @@ class InsightClassificationJob:
 
         self._cache.set(ck, raw_text)
         return await self._validate_and_finalize(article, ext, totals, raw_llm_text=raw_text)
+
+    @staticmethod
+    def _build_prefilter_minimal_unclear(article: Article, reason: str | None) -> PerArticleInsightResult:
+        reason_text = reason or "skipped_prefilter_minimal_unclear"
+        extraction = LlmInsightExtraction(
+            pmid=article.pmid,
+            finding_direction=FieldInsightBlock(value="unclear", confidence=0.0, evidence_spans=[]),
+            statistical_significance=FieldInsightBlock(value="unclear", confidence=0.0, evidence_spans=[]),
+            clinical_meaningfulness=ClinicalFieldInsight(
+                value="unclear",
+                confidence=0.0,
+                evidence_spans=[],
+                reasoning_summary=reason_text,
+            ),
+            main_claim=FieldInsightBlock(
+                value="Insufficient abstract text for reliable classification.",
+                confidence=0.0,
+                evidence_spans=[],
+            ),
+            review_flags=[reason_text],
+        )
+        record = ArticleInsightRecord(
+            pmid=article.pmid,
+            extraction=extraction,
+            validation=ValidationPassResult(schema_ok=True, truncation_warning=False),
+            auto_accept=AutoAcceptStatus.NEEDS_HUMAN_REVIEW,
+            audit=None,
+            acceptance_reasons=["prefilter_minimal_unclear", reason_text],
+        )
+        return PerArticleInsightResult(
+            pmid=article.pmid,
+            status=PerArticleStatus.VALIDATED_BUT_FLAGGED,
+            insight=record,
+            prefilter_note=reason_text,
+        )
 
     async def _validate_and_finalize(
         self,
@@ -187,10 +238,10 @@ class InsightClassificationJob:
 
         audit_res: AuditResult | None = None
         run_audit = self._config.enable_audit and audit_triggers(
-            low_confidence=low_conf,
+            low_confidence=False,
             mixed_findings=mixed,
             clinically_meaningful=meaningful,
-            grounding_failed=grounding_failed,
+            grounding_failed=False,
             semantic_flags=sem_bool,
         )
         if run_audit:
@@ -213,9 +264,22 @@ class InsightClassificationJob:
             and (audit_res is None or audit_res.supported)
         )
 
-        if trusted:
-            st_final = PerArticleStatus.SUCCESS
-            totals["success_trusted"] += 1
+        validated_but_flagged = (
+            not trusted
+            and val.schema_ok
+            and all(g.all_spans_found for g in val.grounding)
+            and (audit_res is None or audit_res.supported)
+        )
+
+        if grounding_failed:
+            st_final = PerArticleStatus.INVALID_OUTPUT
+            totals["invalid_output"] += 1
+        elif trusted:
+            st_final = PerArticleStatus.AUTO_ACCEPTED
+            totals["auto_accepted"] += 1
+        elif validated_but_flagged:
+            st_final = PerArticleStatus.VALIDATED_BUT_FLAGGED
+            totals["validated_but_flagged"] += 1
         else:
             st_final = PerArticleStatus.NEEDS_HUMAN_REVIEW
             totals["needs_review"] += 1

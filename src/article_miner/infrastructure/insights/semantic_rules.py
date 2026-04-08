@@ -1,4 +1,9 @@
-"""Deterministic semantic flags (Layer 3) — heuristics, not medical truth."""
+"""Deterministic semantic flags (Layer 3) — heuristics, not medical truth.
+
+Policy:
+- Use high-precision rules for ``severity="error"`` only when contradiction is obvious.
+- Keep broader regex heuristics as ``warning`` flags to avoid brittle hard failures.
+"""
 
 from __future__ import annotations
 
@@ -8,12 +13,13 @@ from article_miner.domain.insights.models import LlmInsightExtraction, SemanticF
 
 # Patterns are lowercased for matching
 _SIG_NEG = re.compile(
-    r"\b(no significant|not statistically significant|did not reach significance|"
-    r"ns\b|p\s*>\s*0\.|non[- ]significant)\b",
+    r"\b(no significant difference|not statistically significant|"
+    r"did not reach statistical significance|non[- ]significant)\b|"
+    r"\bp\s*>\s*0\.0?5\b",
     re.IGNORECASE,
 )
 _SIG_POS = re.compile(
-    r"\b(p\s*<\s*0\.|statistically significant|significant difference|"
+    r"\b(p\s*<\s*0\.0?5|statistically significant|significant difference|"
     r"significantly (higher|lower|reduced|improved))\b",
     re.IGNORECASE,
 )
@@ -49,20 +55,33 @@ def run_semantic_rules(ext: LlmInsightExtraction) -> list[SemanticFlag]:
     claim = ext.main_claim.value.lower()
 
     v = ext.statistical_significance.value.lower()
-    if v == "significant" and _SIG_NEG.search(ev):
+    neg_sig = bool(_SIG_NEG.search(ev))
+    # Avoid counting positive-significance substrings embedded inside negative phrases
+    # such as "not statistically significant" or "no significant difference".
+    ev_without_neg = _SIG_NEG.sub(" ", ev)
+    pos_sig = bool(_SIG_POS.search(ev_without_neg))
+    if neg_sig and pos_sig:
+        flags.append(
+            SemanticFlag(
+                code="mixed_significance_language",
+                message="Evidence contains both significance and non-significance language; treat as ambiguous.",
+                severity="warning",
+            )
+        )
+    elif v == "significant" and neg_sig:
         flags.append(
             SemanticFlag(
                 code="sig_vs_evidence_neg",
                 message="Label significant but evidence text suggests non-significance language.",
-                severity="warning",
+                severity="error",
             )
         )
-    if v == "not_significant" and _SIG_POS.search(ev):
+    elif v == "not_significant" and pos_sig:
         flags.append(
             SemanticFlag(
                 code="not_sig_vs_evidence_pos",
                 message="Label not_significant but evidence suggests significance language.",
-                severity="warning",
+                severity="error",
             )
         )
 

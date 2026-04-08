@@ -34,7 +34,8 @@ class ClinicalMeaningfulness(StrEnum):
 class PerArticleStatus(StrEnum):
     """Outcome of the pipeline for one PMID."""
 
-    SUCCESS = "success"
+    AUTO_ACCEPTED = "auto_accepted"
+    VALIDATED_BUT_FLAGGED = "validated_but_flagged"
     NEEDS_HUMAN_REVIEW = "needs_human_review"
     INVALID_OUTPUT = "invalid_output"
     API_FAILURE = "api_failure"

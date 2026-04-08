@@ -72,9 +72,11 @@ All article objects are validated with **Pydantic** before serialization.
 After you have a `CollectionOutput` JSON from `collect-pubmed`, you can run **Pass 1** (one article per LiteLLM request, JSON-only), **Pass 2** (deterministic Pydantic + substring grounding + heuristic contradiction flags), and **Pass 3** (optional audit call only when triggers fire: low confidence, mixed findings, clinically “meaningful”, failed grounding, or semantic flags).
 
 - **Evidence**: the model must return verbatim **evidence spans** from the title/abstract; the system checks that each span occurs in a canonical concatenation of title + abstract.
-- **Trust**: `PerArticleStatus` is `success` only when schema, grounding, auto-accept heuristics, and (if run) audit all agree; otherwise rows are `needs_human_review` (or `invalid_output` / `api_failure` / `skipped_prefilter`).
+- **Trust**: `PerArticleStatus` is split into `auto_accepted` (highest trust), `validated_but_flagged` (schema/grounding valid with caveats, including some prefilter-routed minimal outputs), and `needs_human_review` (not trustworthy enough to auto-accept), plus `invalid_output` / `api_failure` / `skipped_prefilter`.
+- **Confidence policy**: model-reported confidence is treated as a **secondary triage signal** (recorded in reasons), not a primary trust gate. Primary gates are schema validity, grounding, deterministic contradiction flags, and high-risk labels (`mixed`, `meaningful`).
 - **Providers**: set one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` (LiteLLM). Choose a model with `--model` (e.g. `gpt-4o-mini`, `anthropic/claude-3-5-sonnet-20241022`, `gemini/gemini-1.5-flash`).
 - **Caching**: optional `--cache /path/to/cache.sqlite` keys on PMID + input hash + prompt version + model.
+- **Prefilter routing**: prefilter is a routing decision, not a quality judgement. `no/short abstract` routes to deterministic minimal `unclear` output (`validated_but_flagged`) with explicit notes like `skipped_prefilter_no_abstract`; non-primary publication types route to `skipped_prefilter_non_primary_research:*`.
 
 ```bash
 uv run classify-insights results.json -o insights.json --model gpt-4o-mini
@@ -86,7 +88,7 @@ uv run classify-insights results.json -o insights.jsonl
 
 **Offline evaluation**: see [`scripts/eval_insight_metrics.py`](scripts/eval_insight_metrics.py) (optional `pandas` / `scikit-learn` for metrics). For rigorous work, build a gold set (75–150 articles) and report accuracy / macro-F1 / **precision on auto-accept** rows.
 
-**Runtime metrics** (from `InsightJobResult.stats` in the JSON / `.summary.json` sidecar): `input_tokens` / `output_tokens` (when the provider returns usage), counts for `success_trusted`, `needs_review`, `invalid_output`, `api_failure`, `skipped_prefilter`, and `truncation_warning` (when canonical title+abstract exceeds the configured length). Derive schema pass rate, grounding pass rate, and human-review rate from per-article rows.
+**Runtime metrics** (from `InsightJobResult.stats` in the JSON / `.summary.json` sidecar): `input_tokens` / `output_tokens` (when the provider returns usage), counts for `auto_accepted`, `validated_but_flagged`, `needs_review`, `invalid_output`, `api_failure`, `skipped_prefilter`, and `truncation_warning` (when canonical title+abstract exceeds the configured length). Derive schema pass rate, grounding pass rate, and human-review rate from per-article rows.
 
 ## Finding probable duplicates
 

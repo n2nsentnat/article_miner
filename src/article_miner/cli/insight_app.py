@@ -82,7 +82,8 @@ def main(
         typer.echo(f"Wrote {out_path}")
 
     typer.echo(
-        f"Stats: trusted={result.stats.get('success_trusted')} "
+        f"Stats: auto_accepted={result.stats.get('auto_accepted', 0)} "
+        f"validated_flagged={result.stats.get('validated_but_flagged', 0)} "
         f"needs_review={result.stats.get('needs_review')} "
         f"invalid={result.stats.get('invalid_output')} "
         f"api_fail={result.stats.get('api_failure')} "
