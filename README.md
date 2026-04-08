@@ -93,6 +93,16 @@ uv sync --all-groups
 uv run pytest
 ```
 
+### Live NCBI smoke test (optional)
+
+Unit tests mock HTTP. To exercise the real E-utilities stack (same path as the CLI):
+
+```bash
+ARTICLE_MINER_LIVE_NCBI=1 uv run pytest tests/test_live_pubmed_collect.py -v -m live_ncbi
+```
+
+Requires network access. The live module runs the same assertion against several broad queries (e.g. diabetes, hypertension, COVID-19, machine learning, publication type). Without `ARTICLE_MINER_LIVE_NCBI=1`, those tests are skipped so CI stays offline by default.
+
 ## License
 
 Add your license here.

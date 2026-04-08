@@ -25,6 +25,9 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "live_ncbi: calls real NCBI E-utilities; enable with ARTICLE_MINER_LIVE_NCBI=1",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.8,<0.10.0"]
