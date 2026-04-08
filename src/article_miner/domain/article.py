@@ -23,7 +23,12 @@ class Article(BaseModel):
     journal_full: str | None = Field(None, description="Journal full title")
     journal_iso: str | None = Field(None, description="ISO journal abbreviation")
     publication_year: int | None = None
-    publication_month: str | None = None
+    publication_month: int | None = Field(
+        None,
+        description="Calendar month 1–12 when parseable (from PubMed Year/Month/Day)",
+        ge=1,
+        le=12,
+    )
     publication_day: int | None = None
     doi: str | None = None
     pmc_id: str | None = None

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class RateLimiter:
@@ -22,5 +25,12 @@ class RateLimiter:
         with self._lock:
             now = time.monotonic()
             if now < self._next_allowed:
-                time.sleep(self._next_allowed - now)
+                wait = self._next_allowed - now
+                logger.debug(
+                    "Rate limit: sleeping %.3fs before next slot (min_interval=%.4fs, ~%.1f req/s)",
+                    wait,
+                    self._min_interval,
+                    1.0 / self._min_interval,
+                )
+                time.sleep(wait)
             self._next_allowed = max(self._next_allowed, time.monotonic()) + self._min_interval

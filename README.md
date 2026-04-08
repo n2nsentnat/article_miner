@@ -6,6 +6,7 @@ Command-line tool that searches [PubMed](https://pubmed.ncbi.nlm.nih.gov/) via t
 
 - Python **3.13**
 - [uv](https://docs.astral.sh/uv/) for environments and dependency management
+- **[lxml](https://lxml.de/)** for PubMed XML (`efetch`): XPath parsing, namespace-agnostic queries, `huge_tree` for large responses, and `resolve_entities=False` for safer parsing
 
 ## Setup
 

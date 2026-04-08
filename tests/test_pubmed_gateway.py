@@ -17,8 +17,8 @@ class FakeHttp:
         self.responses = responses
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    def get_text(self, url: str, params: dict[str, Any]) -> str:
-        self.calls.append((url, dict(params)))
+    def get_text(self, url: str, params: dict[str, Any] | None = None) -> str:
+        self.calls.append((url, dict(params) if params is not None else {}))
         if not self.responses:
             msg = "no more mocked responses"
             raise AssertionError(msg)
@@ -90,3 +90,13 @@ def test_efetch_error_tag_raises() -> None:
     gw = EntrezPubMedGateway(http, NcbiClientConfig())
     with pytest.raises(MalformedResponseError, match="EFetch returned ERROR"):
         gw.fetch_articles(["1"])
+
+
+def test_efetch_multiple_error_tags_joined() -> None:
+    xml = '<?xml version="1.0"?><ERROR>first</ERROR><ERROR>second</ERROR>'
+    http = FakeHttp([xml])
+    gw = EntrezPubMedGateway(http, NcbiClientConfig())
+    with pytest.raises(MalformedResponseError) as exc_info:
+        gw.fetch_articles(["1"])
+    assert "first" in str(exc_info.value)
+    assert "second" in str(exc_info.value)

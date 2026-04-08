@@ -6,7 +6,12 @@ from typing import Any, Protocol
 
 
 class HttpTextClient(Protocol):
-    """Minimal surface used by ``EntrezPubMedGateway``."""
+    """Minimal surface used by ``EntrezPubMedGateway``.
 
-    def get_text(self, url: str, params: dict[str, Any]) -> str:
-        """Perform GET with query params and return decoded body text."""
+    Callers should pass an implementation that applies NCBI-friendly rate limiting
+    and retries (e.g. :class:`~article_miner.infrastructure.ncbi.resilient_http.ResilientHttpClient`).
+    The protocol itself does not enforce that—only the concrete client does.
+    """
+
+    def get_text(self, url: str, params: dict[str, Any] | None = None) -> str:
+        """Perform GET with optional query params and return decoded body text."""

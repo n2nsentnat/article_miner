@@ -27,6 +27,8 @@ class NcbiClientConfig:
     timeout_seconds: float = 60.0
     max_retries: int = 5
     base_backoff_seconds: float = 0.5
+    #: Upper bound on a single backoff sleep (after jitter / Retry-After). ``None`` = no cap.
+    max_backoff_seconds: float | None = 120.0
 
     @property
     def requests_per_second(self) -> float:
