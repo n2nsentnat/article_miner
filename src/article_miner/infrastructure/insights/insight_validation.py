@@ -16,7 +16,10 @@ from article_miner.domain.insights.models import (
     SemanticFlag,
     ValidationPassResult,
 )
-from article_miner.infrastructure.insights.canonical_text import build_canonical_text, span_in_haystack
+from article_miner.infrastructure.insights.canonical_text import (
+    build_canonical_text,
+    span_in_haystack,
+)
 from article_miner.infrastructure.insights.semantic_rules import run_semantic_rules
 
 ALLOWED_FINDING = frozenset({"positive", "negative", "neutral", "mixed", "unclear"})
@@ -31,13 +34,19 @@ def _validate_enum_labels(ext: LlmInsightExtraction) -> list[str]:
     errs: list[str] = []
     fd = ext.finding_direction.value.strip().lower()
     if fd not in ALLOWED_FINDING:
-        errs.append(f"finding_direction must be one of {sorted(ALLOWED_FINDING)}, got {fd!r}")
+        errs.append(
+            f"finding_direction must be one of {sorted(ALLOWED_FINDING)}, got {fd!r}"
+        )
     sg = ext.statistical_significance.value.strip().lower()
     if sg not in ALLOWED_SIG:
-        errs.append(f"statistical_significance must be one of {sorted(ALLOWED_SIG)}, got {sg!r}")
+        errs.append(
+            f"statistical_significance must be one of {sorted(ALLOWED_SIG)}, got {sg!r}"
+        )
     cm = ext.clinical_meaningfulness.value.strip().lower()
     if cm not in ALLOWED_CLIN:
-        errs.append(f"clinical_meaningfulness must be one of {sorted(ALLOWED_CLIN)}, got {cm!r}")
+        errs.append(
+            f"clinical_meaningfulness must be one of {sorted(ALLOWED_CLIN)}, got {cm!r}"
+        )
     if not ext.main_claim.value.strip():
         errs.append("main_claim.value must be non-empty")
     return errs
@@ -56,7 +65,9 @@ def _ground_field(
     missing: list[str] = []
     if v == _UNCLEAR:
         for sp in spans:
-            if sp.strip() and not span_in_haystack(sp, haystack, fuzzy_whitespace=fuzzy_whitespace):
+            if sp.strip() and not span_in_haystack(
+                sp, haystack, fuzzy_whitespace=fuzzy_whitespace
+            ):
                 missing.append(sp)
         return GroundingCheck(
             field_name=field_name,
@@ -81,10 +92,17 @@ def _ground_field(
     )
 
 
-def grounding_checks(article: Article, ext: LlmInsightExtraction) -> list[GroundingCheck]:
+def grounding_checks(
+    article: Article, ext: LlmInsightExtraction
+) -> list[GroundingCheck]:
     hay = build_canonical_text(article)
     return [
-        _ground_field("finding_direction", ext.finding_direction.value, ext.finding_direction.evidence_spans, hay),
+        _ground_field(
+            "finding_direction",
+            ext.finding_direction.value,
+            ext.finding_direction.evidence_spans,
+            hay,
+        ),
         _ground_field(
             "statistical_significance",
             ext.statistical_significance.value,
@@ -97,7 +115,9 @@ def grounding_checks(article: Article, ext: LlmInsightExtraction) -> list[Ground
             ext.clinical_meaningfulness.evidence_spans,
             hay,
         ),
-        _ground_field("main_claim", ext.main_claim.value, ext.main_claim.evidence_spans, hay),
+        _ground_field(
+            "main_claim", ext.main_claim.value, ext.main_claim.evidence_spans, hay
+        ),
     ]
 
 

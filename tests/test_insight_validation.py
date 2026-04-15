@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 from article_miner.domain.collect.models import Article
-from article_miner.domain.insights.models import ClinicalFieldInsight, FieldInsightBlock, LlmInsightExtraction
-from article_miner.infrastructure.insights.canonical_text import build_canonical_text, span_in_haystack
+from article_miner.domain.insights.models import (
+    ClinicalFieldInsight,
+    FieldInsightBlock,
+    LlmInsightExtraction,
+)
+from article_miner.infrastructure.insights.canonical_text import (
+    build_canonical_text,
+    span_in_haystack,
+)
 from article_miner.infrastructure.insights.insight_validation import (
     grounding_checks,
     parse_extraction_json,
@@ -119,8 +126,10 @@ def test_parse_extraction_json_roundtrip() -> None:
 
 
 def test_prefilter_skips_short() -> None:
-    from article_miner.infrastructure.insights.prefilter import prefilter_article
-    from article_miner.infrastructure.insights.prefilter import PrefilterAction
+    from article_miner.infrastructure.insights.prefilter import (
+        PrefilterAction,
+        prefilter_article,
+    )
 
     a = Article(pmid="9", title="Hi", abstract="short", publication_year=2020)
     decision = prefilter_article(a)

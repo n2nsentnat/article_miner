@@ -71,7 +71,9 @@ def format_dedup_markdown(report: DedupReport) -> str:
         "",
     ]
     for c in report.clusters:
-        lines.append(f"### Cluster {c.cluster_id} - `{c.primary_reason}` ({c.confidence})")
+        lines.append(
+            f"### Cluster {c.cluster_id} - `{c.primary_reason}` ({c.confidence})"
+        )
         lines.append("")
         lines.append(c.detail)
         lines.append("")
@@ -188,13 +190,17 @@ def _maybe_retraction_notes(a: Article) -> list[str]:
         notes.append(f"PMID {a.pmid}: title mentions retraction (verify in PubMed)")
     for pt in a.publication_types:
         if "retract" in pt.lower():
-            notes.append(f"PMID {a.pmid}: publication type includes '{pt}' (verify replacement)")
+            notes.append(
+                f"PMID {a.pmid}: publication type includes '{pt}' (verify replacement)"
+            )
             break
     return notes
 
 
 def _cluster_metadata(
-    indices: list[int], articles: list[Article], edges_in_cluster: list[tuple[int, int, str]]
+    indices: list[int],
+    articles: list[Article],
+    edges_in_cluster: list[tuple[int, int, str]],
 ) -> tuple[str, Literal["high", "medium"], str, list[str], str | None]:
     kinds = {k for _, _, k in edges_in_cluster}
     evidence: list[str] = []
@@ -205,7 +211,10 @@ def _cluster_metadata(
     }
     for i, j, k in sorted(
         edges_in_cluster,
-        key=lambda e: (_pmid_sort_key(articles[e[0]].pmid), _pmid_sort_key(articles[e[1]].pmid)),
+        key=lambda e: (
+            _pmid_sort_key(articles[e[0]].pmid),
+            _pmid_sort_key(articles[e[1]].pmid),
+        ),
     ):
         pair = sorted([articles[i].pmid, articles[j].pmid], key=_pmid_sort_key)
         evidence.append(f"{pair[0]}↔{pair[1]}: {label_map.get(k, k)}")
@@ -319,11 +328,17 @@ def build_duplicate_report(collection: CollectionOutput) -> DedupReport:
                     fuzzy_pairs_compared += 1
                     tr = fuzz.ratio(ti, tj)
                     ts = fuzz.token_sort_ratio(ti, tj)
-                    if not (tr >= FUZZY_TITLE_RATIO_MIN or ts >= FUZZY_TITLE_TOKEN_SORT_MIN):
+                    if not (
+                        tr >= FUZZY_TITLE_RATIO_MIN or ts >= FUZZY_TITLE_TOKEN_SORT_MIN
+                    ):
                         continue
                     abi = _abstract_norm(ai.abstract)
                     abj = _abstract_norm(aj.abstract)
-                    if abi and abj and fuzz.token_sort_ratio(abi, abj) < ABSTRACT_TOKEN_SORT_MIN:
+                    if (
+                        abi
+                        and abj
+                        and fuzz.token_sort_ratio(abi, abj) < ABSTRACT_TOKEN_SORT_MIN
+                    ):
                         continue
                     _append_edge(edges, i, j, _EDGE_FUZZY)
                     uf.union(i, j)
@@ -388,5 +403,3 @@ def build_duplicate_report(collection: CollectionOutput) -> DedupReport:
 
 def load_collection(path: str) -> CollectionOutput:
     return CollectionOutput.model_validate_json(Path(path).read_text(encoding="utf-8"))
-
-

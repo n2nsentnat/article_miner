@@ -1,6 +1,5 @@
 """Token-bucket style spacing for NCBI rate limits (thread-safe)."""
 
-from __future__ import annotations
 
 import logging
 import threading
@@ -33,5 +32,6 @@ class RateLimiter:
                     1.0 / self._min_interval,
                 )
                 time.sleep(wait)
-            self._next_allowed = max(self._next_allowed, time.monotonic()) + self._min_interval
-
+            self._next_allowed = (
+                max(self._next_allowed, time.monotonic()) + self._min_interval
+            )

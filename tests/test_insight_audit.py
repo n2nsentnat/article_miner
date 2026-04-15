@@ -40,4 +40,3 @@ def test_parse_audit_json_invalid_verdicts_fallback_to_unsupported() -> None:
     assert out.statistical_significance == "unsupported"
     assert out.clinical_meaningfulness == "supported"
     assert out.notes == ["single note"]
-

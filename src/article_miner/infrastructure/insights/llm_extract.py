@@ -40,11 +40,15 @@ def _usage_tokens(response: Any) -> tuple[int, int]:
     if u is None:
         return 0, 0
     inp = getattr(u, "prompt_tokens", None) or getattr(u, "input_tokens", None) or 0
-    out = getattr(u, "completion_tokens", None) or getattr(u, "output_tokens", None) or 0
+    out = (
+        getattr(u, "completion_tokens", None) or getattr(u, "output_tokens", None) or 0
+    )
     return int(inp), int(out)
 
 
-async def extract_insight_json(model: str, article: Article, **kwargs: Any) -> tuple[str, LlmCallStats]:
+async def extract_insight_json(
+    model: str, article: Article, **kwargs: Any
+) -> tuple[str, LlmCallStats]:
     """Single extraction call; returns raw message content (JSON string)."""
     messages = [
         {"role": "system", "content": system_prompt()},
@@ -61,7 +65,9 @@ async def extract_insight_json(model: str, article: Article, **kwargs: Any) -> t
     return text, LlmCallStats(input_tokens=inp, output_tokens=out, model=model)
 
 
-async def repair_json(model: str, broken_text: str, **kwargs: Any) -> tuple[str, LlmCallStats]:
+async def repair_json(
+    model: str, broken_text: str, **kwargs: Any
+) -> tuple[str, LlmCallStats]:
     """One repair attempt for malformed JSON."""
     messages = [
         {"role": "system", "content": "You output only valid JSON. No markdown."},
@@ -92,7 +98,10 @@ async def audit_classification(
         classification_json=json.dumps(classification, indent=2)[:12000],
     )
     messages = [
-        {"role": "system", "content": "You output only valid JSON in the requested schema."},
+        {
+            "role": "system",
+            "content": "You output only valid JSON in the requested schema.",
+        },
         {"role": "user", "content": user},
     ]
     response = await litellm.acompletion(
@@ -114,9 +123,7 @@ async def audit_classification(
             notes=["audit_parse_failed"],
             raw_response=text,
         )
-    return audit, LlmCallStats(
-        input_tokens=inp, output_tokens=out, model=model
-    )
+    return audit, LlmCallStats(input_tokens=inp, output_tokens=out, model=model)
 
 
 def parse_audit_json(text: str) -> AuditResult | None:

@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from article_miner.domain.errors import NcbiRateLimitError, NcbiTransportError
-from article_miner.infrastructure.collect.config import NcbiClientConfig
+from article_miner.infrastructure.collect.ncbi_client_config import NcbiClientConfig
 from article_miner.infrastructure.collect.rate_limiter import RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,9 @@ class ResilientHttpClient:
                         _redact_params(query),
                         exc,
                     )
-                    raise NcbiTransportError(f"HTTP request failed after retries: {exc}") from exc
+                    raise NcbiTransportError(
+                        f"HTTP request failed after retries: {exc}"
+                    ) from exc
                 logger.debug(
                     "Retry %s/%s after RequestError %s: %s",
                     attempt + 1,
@@ -164,4 +166,3 @@ class ResilientHttpClient:
             self._config.base_backoff_seconds,
         )
         time.sleep(delay)
-

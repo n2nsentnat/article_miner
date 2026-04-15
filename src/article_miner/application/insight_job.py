@@ -23,10 +23,18 @@ from article_miner.domain.insights.models import (
     ValidationPassResult,
 )
 from article_miner.infrastructure.insights.canonical_text import build_canonical_text
-from article_miner.infrastructure.insights.insight_cache import InsightCache, cache_key, input_hash
-from article_miner.infrastructure.insights.insight_validation import merge_dict_for_audit, parse_extraction_json, run_pass2_validation
-from article_miner.infrastructure.insights.insight_validation import try_local_json_repair
-from article_miner.infrastructure.insights.insight_validation import VALIDATOR_VERSION
+from article_miner.infrastructure.insights.insight_cache import (
+    InsightCache,
+    cache_key,
+    input_hash,
+)
+from article_miner.infrastructure.insights.insight_validation import (
+    VALIDATOR_VERSION,
+    merge_dict_for_audit,
+    parse_extraction_json,
+    run_pass2_validation,
+    try_local_json_repair,
+)
 from article_miner.infrastructure.insights.llm_extract import (
     LlmCallStats,
     audit_classification,
@@ -34,8 +42,10 @@ from article_miner.infrastructure.insights.llm_extract import (
     extract_insight_json,
     repair_json,
 )
-from article_miner.infrastructure.insights.prefilter import prefilter_article
-from article_miner.infrastructure.insights.prefilter import PrefilterAction
+from article_miner.infrastructure.insights.prefilter import (
+    PrefilterAction,
+    prefilter_article,
+)
 from article_miner.infrastructure.insights.prompts import PROMPT_VERSION
 
 logger = logging.getLogger(__name__)
@@ -85,7 +95,9 @@ class InsightClassificationJob:
             async with sem:
                 return idx, await self._process_article(a, totals)
 
-        pending = [asyncio.create_task(_one(i, a)) for i, a in enumerate(collection.articles)]
+        pending = [
+            asyncio.create_task(_one(i, a)) for i, a in enumerate(collection.articles)
+        ]
         indexed_results: list[tuple[int, PerArticleInsightResult]] = []
         completed = 0
         for done in asyncio.as_completed(pending):
@@ -94,7 +106,8 @@ class InsightClassificationJob:
             self._append_incremental_row(row)
             completed += 1
             if self._config.progress and (
-                completed == total_articles or completed % max(1, self._config.progress_every) == 0
+                completed == total_articles
+                or completed % max(1, self._config.progress_every) == 0
             ):
                 logger.info(
                     "insights progress: %s/%s done (auto=%s flagged=%s review=%s invalid=%s api_fail=%s skipped=%s)",
@@ -128,7 +141,9 @@ class InsightClassificationJob:
         with path.open("a", encoding="utf-8") as f:
             f.write(row.model_dump_json() + "\n")
 
-    async def _process_article(self, article: Article, totals: dict[str, float]) -> PerArticleInsightResult:
+    async def _process_article(
+        self, article: Article, totals: dict[str, float]
+    ) -> PerArticleInsightResult:
         t0 = time.perf_counter()
         logger.info("insights article start: pmid=%s", article.pmid)
         decision = prefilter_article(article)
@@ -155,7 +170,9 @@ class InsightClassificationJob:
             return row
         if decision.action == PrefilterAction.MINIMAL_UNCLEAR:
             totals["validated_but_flagged"] += 1
-            row = self._build_prefilter_minimal_unclear(article, decision.reason, in_hash, self._config.model)
+            row = self._build_prefilter_minimal_unclear(
+                article, decision.reason, in_hash, self._config.model
+            )
             logger.info(
                 "insights article done: pmid=%s status=%s route=%s elapsed_ms=%s",
                 article.pmid,
@@ -170,7 +187,9 @@ class InsightClassificationJob:
         if cached:
             ext, err = parse_extraction_json(cached)
             if ext:
-                row = await self._validate_and_finalize(article, ext, totals, raw_llm_text=cached)
+                row = await self._validate_and_finalize(
+                    article, ext, totals, raw_llm_text=cached
+                )
                 logger.info(
                     "insights article done: pmid=%s status=%s source=cache elapsed_ms=%s",
                     article.pmid,
@@ -185,7 +204,9 @@ class InsightClassificationJob:
         raw_text = ""
         for attempt in range(self._config.max_retries):
             try:
-                raw_text, st = await extract_insight_json(self._config.model, article, **kw)
+                raw_text, st = await extract_insight_json(
+                    self._config.model, article, **kw
+                )
                 totals["input_tokens"] += st.input_tokens
                 totals["output_tokens"] += st.output_tokens
                 break
@@ -257,7 +278,9 @@ class InsightClassificationJob:
             return row
 
         self._cache.set(ck, raw_text)
-        row = await self._validate_and_finalize(article, ext, totals, raw_llm_text=raw_text)
+        row = await self._validate_and_finalize(
+            article, ext, totals, raw_llm_text=raw_text
+        )
         logger.info(
             "insights article done: pmid=%s status=%s elapsed_ms=%s",
             article.pmid,
@@ -273,8 +296,12 @@ class InsightClassificationJob:
         reason_text = reason or "skipped_prefilter_minimal_unclear"
         extraction = LlmInsightExtraction(
             pmid=article.pmid,
-            finding_direction=FieldInsightBlock(value="unclear", confidence=0.0, evidence_spans=[]),
-            statistical_significance=FieldInsightBlock(value="unclear", confidence=0.0, evidence_spans=[]),
+            finding_direction=FieldInsightBlock(
+                value="unclear", confidence=0.0, evidence_spans=[]
+            ),
+            statistical_significance=FieldInsightBlock(
+                value="unclear", confidence=0.0, evidence_spans=[]
+            ),
             clinical_meaningfulness=ClinicalFieldInsight(
                 value="unclear",
                 confidence=0.0,
@@ -337,8 +364,10 @@ class InsightClassificationJob:
         low_conf = any(
             [
                 ext.finding_direction.confidence < self._config.confidence_threshold,
-                ext.statistical_significance.confidence < self._config.confidence_threshold,
-                ext.clinical_meaningfulness.confidence < self._config.confidence_threshold,
+                ext.statistical_significance.confidence
+                < self._config.confidence_threshold,
+                ext.clinical_meaningfulness.confidence
+                < self._config.confidence_threshold,
                 ext.main_claim.confidence < self._config.confidence_threshold,
             ]
         )

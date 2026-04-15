@@ -28,4 +28,3 @@ class CollectArticlesService:
             articles=articles,
             warnings=fetch_warnings,
         )
-

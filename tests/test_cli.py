@@ -14,7 +14,9 @@ from article_miner.domain.collect.models import Article, CollectionOutput
 
 def test_cli_writes_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
-    def fake_run(self: CollectArticlesService, query: str, requested_count: int) -> CollectionOutput:
+    def fake_run(
+        self: CollectArticlesService, query: str, requested_count: int
+    ) -> CollectionOutput:
         return CollectionOutput(
             query=query,
             total_match_count=1,

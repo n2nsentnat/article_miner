@@ -30,7 +30,9 @@ def normalize_for_match(s: str) -> str:
     return re.sub(r"\s+", " ", s.strip())
 
 
-def span_in_haystack(span: str, haystack: str, *, fuzzy_whitespace: bool = False) -> bool:
+def span_in_haystack(
+    span: str, haystack: str, *, fuzzy_whitespace: bool = False
+) -> bool:
     """Return True if span appears in haystack (exact substring)."""
     if not span:
         return False

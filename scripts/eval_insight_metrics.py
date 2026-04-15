@@ -34,10 +34,14 @@ def main() -> None:
     gold = {str(r.get("pmid")): r for r in _load_jsonl(args.gold)}
     pred = {str(r.get("pmid")): r for r in _load_jsonl(args.pred)}
     common = set(gold) & set(pred)
-    print(f"Gold rows: {len(gold)}  Pred rows: {len(pred)}  Common pmids: {len(common)}")
+    print(
+        f"Gold rows: {len(gold)}  Pred rows: {len(pred)}  Common pmids: {len(common)}"
+    )
     try:
         import pandas as pd  # type: ignore[import-not-found]
-        from sklearn.metrics import classification_report  # type: ignore[import-not-found]
+        from sklearn.metrics import (
+            classification_report,
+        )  # type: ignore[import-not-found]
 
         # Expect nested insight.extraction.finding_direction.value when using article_miner export
         def fd(r: dict[str, object]) -> str:

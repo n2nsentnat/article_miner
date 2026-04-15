@@ -29,4 +29,3 @@ class ESearchEnvelope(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     esearchresult: ESearchInner
-

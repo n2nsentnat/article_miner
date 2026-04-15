@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from article_miner.application.collect.service import CollectArticlesService
 from article_miner.common.env import load_project_env
 from article_miner.domain.errors import ArticleMinerError, NcbiError
-from article_miner.infrastructure.collect.config import NcbiClientConfig
+from article_miner.infrastructure.collect.ncbi_client_config import NcbiClientConfig
 from article_miner.infrastructure.collect.pubmed_gateway import EntrezPubMedGateway
 from article_miner.infrastructure.collect.rate_limiter import RateLimiter
 from article_miner.infrastructure.collect.resilient_http import ResilientHttpClient
@@ -82,7 +82,9 @@ def collect(
                 encoding="utf-8",
             )
         except OSError as exc:
-            typer.secho(f"Failed to write {output}: {exc}", err=True, fg=typer.colors.RED)
+            typer.secho(
+                f"Failed to write {output}: {exc}", err=True, fg=typer.colors.RED
+            )
             raise typer.Exit(code=1) from exc
         typer.echo(
             f"Wrote {result.retrieved_count} article(s) "
