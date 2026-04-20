@@ -15,4 +15,3 @@ def default_project_root() -> Path:
         if (d / "pyproject.toml").is_file():
             return d
     return cwd
-

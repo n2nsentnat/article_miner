@@ -8,7 +8,11 @@ from typing import Any
 import pytest
 
 from article_miner.domain.errors import MalformedResponseError
-from article_miner.infrastructure.collect.config import ESEARCH_URL, EFETCH_URL, NcbiClientConfig
+from article_miner.infrastructure.collect.ncbi_client_config import (
+    EFETCH_URL,
+    ESEARCH_URL,
+    NcbiClientConfig,
+)
 from article_miner.infrastructure.collect.pubmed_gateway import EntrezPubMedGateway
 
 
@@ -26,9 +30,7 @@ class FakeHttp:
 
 
 def test_search_respects_total_and_max() -> None:
-    body = json.dumps(
-        {"esearchresult": {"count": "10", "idlist": ["1", "2", "3"]}}
-    )
+    body = json.dumps({"esearchresult": {"count": "10", "idlist": ["1", "2", "3"]}})
     http = FakeHttp([body])
     gw = EntrezPubMedGateway(http, NcbiClientConfig())
     total, ids = gw.search_pmids("cancer", 5)

@@ -8,9 +8,12 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "black>=26.3.1",
     "httpx>=0.28.1",
+    "isort>=8.0.1",
     "litellm>=1.63.0",
     "lxml>=6.0.2",
+    "mypy>=1.20.1",
     "pydantic>=2.12.5",
     "python-dotenv>=1.1.1",
     "rapidfuzz>=3.14.3",
@@ -35,6 +38,12 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "live_ncbi: calls real NCBI E-utilities; enable with ARTICLE_MINER_LIVE_NCBI=1",
+]
+
+[tool.mypy]
+exclude = [
+    '^tests/',
+    '.venv/',
 ]
 
 [build-system]

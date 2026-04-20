@@ -215,7 +215,9 @@ def _article_ids(pubmed_data: etree._Element | None) -> tuple[str | None, str | 
     return doi, pmc
 
 
-def _parse_doi(art: etree._Element | None, doi_from_pubmed_data: str | None) -> str | None:
+def _parse_doi(
+    art: etree._Element | None, doi_from_pubmed_data: str | None
+) -> str | None:
     """Resolve DOI: prefer ``Article/ELocationID[@EIdType='doi']``, else ``PubmedData`` ArticleId."""
     if art is not None:
         found = art.xpath(f"./{_ln('ELocationID')}[@EIdType='doi']")
@@ -345,4 +347,3 @@ def iter_pubmed_article_elements(xml_text: str) -> Iterable[etree._Element]:
     except etree.XMLSyntaxError as exc:
         raise MalformedResponseError(f"Invalid XML from efetch: {exc}") from exc
     yield from root.xpath(f"//{_ln('PubmedArticle')}")
-

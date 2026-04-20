@@ -11,14 +11,17 @@ from pydantic import ValidationError
 
 from article_miner.domain.collect.models import Article
 from article_miner.domain.errors import MalformedResponseError
-from article_miner.infrastructure.collect.config import (
+from article_miner.infrastructure.collect.ncbi_client_config import (
     EFETCH_ID_BATCH_SIZE,
-    ESEARCH_PAGE_MAX,
     EFETCH_URL,
+    ESEARCH_PAGE_MAX,
     ESEARCH_URL,
     NcbiClientConfig,
 )
-from article_miner.infrastructure.collect.esearch_models import ESearchInner, ESearchEnvelope
+from article_miner.infrastructure.collect.esearch_models import (
+    ESearchEnvelope,
+    ESearchInner,
+)
 from article_miner.infrastructure.collect.http_port import HttpTextClient
 from article_miner.infrastructure.collect.pubmed_xml import parse_pubmed_xml_document
 
@@ -146,7 +149,11 @@ class EntrezPubMedGateway:
 
         if missing_pmids:
             preview = ", ".join(missing_pmids[:20])
-            suffix = f" ... (+{len(missing_pmids) - 20} more)" if len(missing_pmids) > 20 else ""
+            suffix = (
+                f" ... (+{len(missing_pmids) - 20} more)"
+                if len(missing_pmids) > 20
+                else ""
+            )
             logger.warning(
                 "EFetch: no parseable article for %s PMID(s). IDs: %s%s",
                 len(missing_pmids),
@@ -160,11 +167,15 @@ class EntrezPubMedGateway:
         try:
             data = json.loads(body)
         except json.JSONDecodeError as exc:
-            raise MalformedResponseError(f"ESearch returned invalid JSON: {exc}") from exc
+            raise MalformedResponseError(
+                f"ESearch returned invalid JSON: {exc}"
+            ) from exc
         try:
             envelope = ESearchEnvelope.model_validate(data)
         except ValidationError as exc:
-            raise MalformedResponseError(f"ESearch JSON failed validation: {exc}") from exc
+            raise MalformedResponseError(
+                f"ESearch JSON failed validation: {exc}"
+            ) from exc
         return envelope.esearchresult
 
     @staticmethod
@@ -174,4 +185,3 @@ class EntrezPubMedGateway:
         parts = [p.strip() for p in _ERROR_BODY.findall(xml_text) if p.strip()]
         detail = "; ".join(parts) if parts else "unknown error"
         raise MalformedResponseError(f"EFetch returned ERROR: {detail}")
-

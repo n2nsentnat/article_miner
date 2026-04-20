@@ -26,7 +26,9 @@ Output must not include markdown fences or commentary outside JSON."""
 def build_user_prompt(article: Article) -> str:
     title = article.title or ""
     abstract = article.abstract or ""
-    pub_types = ", ".join(article.publication_types) if article.publication_types else "(none)"
+    pub_types = (
+        ", ".join(article.publication_types) if article.publication_types else "(none)"
+    )
     kws = ", ".join(article.keywords) if article.keywords else "(none)"
     return f"""Classify this article.
 

@@ -15,4 +15,3 @@ class HttpTextClient(Protocol):
 
     def get_text(self, url: str, params: dict[str, Any] | None = None) -> str:
         """Perform GET with optional query params and return decoded body text."""
-

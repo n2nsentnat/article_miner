@@ -1,4 +1,12 @@
 from article_miner.domain.collect.models import Article, Author, CollectionOutput
+from article_miner.domain.errors import (
+    ArticleMinerError,
+    ArticleParseError,
+    MalformedResponseError,
+    NcbiError,
+    NcbiRateLimitError,
+    NcbiTransportError,
+)
 from article_miner.domain.insights.models import (
     ArticleInsightRecord,
     AuditResult,
@@ -15,14 +23,6 @@ from article_miner.domain.insights.models import (
     SemanticFlag,
     StatisticalSignificance,
     ValidationPassResult,
-)
-from article_miner.domain.errors import (
-    ArticleMinerError,
-    ArticleParseError,
-    MalformedResponseError,
-    NcbiError,
-    NcbiRateLimitError,
-    NcbiTransportError,
 )
 
 __all__ = [

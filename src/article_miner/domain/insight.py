@@ -51,7 +51,9 @@ class FieldInsightBlock(BaseModel):
     """One classified field from the LLM (Pass 1 shape)."""
 
     value: str
-    confidence: float = Field(ge=0.0, le=1.0, description="Model self-reported confidence")
+    confidence: float = Field(
+        ge=0.0, le=1.0, description="Model self-reported confidence"
+    )
     evidence_spans: list[str] = Field(default_factory=list)
 
 
@@ -102,9 +104,15 @@ class AuditResult(BaseModel):
     """Optional Pass 3 output."""
 
     supported: bool
-    finding_direction: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
-    statistical_significance: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
-    clinical_meaningfulness: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
+    finding_direction: Literal["supported", "weakly_supported", "unsupported"] = (
+        "unsupported"
+    )
+    statistical_significance: Literal[
+        "supported", "weakly_supported", "unsupported"
+    ] = "unsupported"
+    clinical_meaningfulness: Literal["supported", "weakly_supported", "unsupported"] = (
+        "unsupported"
+    )
     main_claim: Literal["supported", "weakly_supported", "unsupported"] = "unsupported"
     notes: list[str] = Field(default_factory=list)
     raw_response: str | None = None
@@ -132,7 +140,9 @@ class PerArticleInsightResult(BaseModel):
     status: PerArticleStatus
     insight: ArticleInsightRecord | None = None
     error_message: str | None = None
-    raw_llm_text: str | None = Field(None, description="Debug: last model text if parse failed")
+    raw_llm_text: str | None = Field(
+        None, description="Debug: last model text if parse failed"
+    )
     prefilter_note: str | None = None
 
 

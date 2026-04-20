@@ -48,12 +48,15 @@ class CollectionOutput(BaseModel):
     """Top-level JSON document written for downstream consumers."""
 
     query: str
-    total_match_count: int = Field(..., description="Total hits for the query in PubMed")
+    total_match_count: int = Field(
+        ..., description="Total hits for the query in PubMed"
+    )
     requested_count: int
-    retrieved_count: int = Field(..., description="Articles successfully parsed and included")
+    retrieved_count: int = Field(
+        ..., description="Articles successfully parsed and included"
+    )
     articles: list[Article]
     warnings: list[str] = Field(
         default_factory=list,
         description="Non-fatal issues (e.g. skipped PMIDs, partial pages)",
     )
-

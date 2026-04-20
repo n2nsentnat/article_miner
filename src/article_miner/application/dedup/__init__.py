@@ -13,4 +13,3 @@ __all__ = [
     "format_dedup_markdown",
     "load_collection",
 ]
-

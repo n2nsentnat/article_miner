@@ -1,4 +1,4 @@
-from article_miner.infrastructure.collect.config import (
+from article_miner.infrastructure.collect.ncbi_client_config import (
     EFETCH_ID_BATCH_SIZE,
     ESEARCH_PAGE_MAX,
     NcbiClientConfig,
@@ -15,4 +15,3 @@ __all__ = [
     "RateLimiter",
     "ResilientHttpClient",
 ]
-

@@ -21,14 +21,13 @@ from __future__ import annotations
 
 import pytest
 
-from article_miner.domain.collect.models import Article, CollectionOutput
 from article_miner.application.dedup.service import (
     ABSTRACT_TOKEN_SORT_MIN,
     build_duplicate_report,
     normalize_doi,
     normalize_title,
 )
-
+from article_miner.domain.collect.models import Article, CollectionOutput
 
 # --- Sample texts (length ≥ 12 chars for fuzzy blocking; PubMed-like tone) ---
 
@@ -84,10 +83,14 @@ def test_normalize_title_strips_punctuation() -> None:
         (SAMPLE_TRIAL_TITLE_VARIANT, "randomized double blind"),
     ],
 )
-def test_sample_titles_normalize_consistently(raw_title: str, expected_norm_substring: str) -> None:
+def test_sample_titles_normalize_consistently(
+    raw_title: str, expected_norm_substring: str
+) -> None:
     nt = normalize_title(raw_title)
     assert expected_norm_substring in nt
-    assert normalize_title(SAMPLE_TRIAL_TITLE) == normalize_title(SAMPLE_TRIAL_TITLE_VARIANT)
+    assert normalize_title(SAMPLE_TRIAL_TITLE) == normalize_title(
+        SAMPLE_TRIAL_TITLE_VARIANT
+    )
 
 
 def test_same_doi_clusters() -> None:
@@ -109,16 +112,33 @@ def test_same_doi_clusters() -> None:
     assert r.clusters[0].pmids == ["1", "2"]
     assert r.clusters[0].primary_reason == "same_doi"
     assert r.clusters[0].confidence == "high"
-    assert any("1" in e and "2" in e and "same_doi" in e for e in r.clusters[0].edge_evidence)
+    assert any(
+        "1" in e and "2" in e and "same_doi" in e for e in r.clusters[0].edge_evidence
+    )
 
 
 def test_same_doi_triple_all_edges_doi() -> None:
     """Three PMIDs sharing one DOI: component is single cluster, edges are DOI-only."""
     d = "10.7777/shared"
     arts = [
-        Article(pmid="10", title="Ahead of print version long title", doi=d, publication_year=2021),
-        Article(pmid="11", title="Final version slightly different long title", doi=d, publication_year=2021),
-        Article(pmid="12", title="Publisher correction notice long title", doi=d, publication_year=2021),
+        Article(
+            pmid="10",
+            title="Ahead of print version long title",
+            doi=d,
+            publication_year=2021,
+        ),
+        Article(
+            pmid="11",
+            title="Final version slightly different long title",
+            doi=d,
+            publication_year=2021,
+        ),
+        Article(
+            pmid="12",
+            title="Publisher correction notice long title",
+            doi=d,
+            publication_year=2021,
+        ),
     ]
     r = build_duplicate_report(_collection(arts))
     assert r.duplicate_group_count == 1
@@ -144,7 +164,9 @@ def test_same_normalized_title_and_year() -> None:
     assert r.duplicate_group_count == 1
     assert set(r.clusters[0].pmids) == {"10", "11"}
     assert r.clusters[0].primary_reason == "same_normalized_title_and_year"
-    assert all("same_normalized_title_and_year" in e for e in r.clusters[0].edge_evidence)
+    assert all(
+        "same_normalized_title_and_year" in e for e in r.clusters[0].edge_evidence
+    )
 
 
 def test_exact_title_year_without_doi_pair() -> None:
@@ -176,10 +198,30 @@ def test_singletons_no_cluster() -> None:
 def test_two_disjoint_doi_pairs_two_clusters() -> None:
     """Independent DOI groups → two duplicate clusters, no cross-merge."""
     arts = [
-        Article(pmid="301", title="Alpha randomized controlled study long", doi="10.1/alpha", publication_year=2020),
-        Article(pmid="302", title="Alpha variant title long enough here", doi="10.1/alpha", publication_year=2020),
-        Article(pmid="303", title="Beta cohort analysis outcomes paper long", doi="10.2/beta", publication_year=2021),
-        Article(pmid="304", title="Beta other wording outcomes paper long", doi="10.2/beta", publication_year=2021),
+        Article(
+            pmid="301",
+            title="Alpha randomized controlled study long",
+            doi="10.1/alpha",
+            publication_year=2020,
+        ),
+        Article(
+            pmid="302",
+            title="Alpha variant title long enough here",
+            doi="10.1/alpha",
+            publication_year=2020,
+        ),
+        Article(
+            pmid="303",
+            title="Beta cohort analysis outcomes paper long",
+            doi="10.2/beta",
+            publication_year=2021,
+        ),
+        Article(
+            pmid="304",
+            title="Beta other wording outcomes paper long",
+            doi="10.2/beta",
+            publication_year=2021,
+        ),
     ]
     r = build_duplicate_report(_collection(arts))
     assert r.duplicate_group_count == 2
@@ -285,8 +327,12 @@ def test_mixed_doi_and_fuzzy_cluster() -> None:
 
 def test_pmid_sort_non_numeric_does_not_crash() -> None:
     """PMIDs are usually numeric; sorting tolerates odd strings."""
-    a1 = Article(pmid="2", title="Shared title for duplicate test long", publication_year=2020)
-    a2 = Article(pmid="bad", title="Shared title for duplicate test long", publication_year=2020)
+    a1 = Article(
+        pmid="2", title="Shared title for duplicate test long", publication_year=2020
+    )
+    a2 = Article(
+        pmid="bad", title="Shared title for duplicate test long", publication_year=2020
+    )
     r = build_duplicate_report(_collection([a1, a2]))
     assert r.duplicate_group_count == 1
     # Sorted with numeric first, then non-numeric

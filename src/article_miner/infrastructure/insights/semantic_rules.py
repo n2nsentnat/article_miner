@@ -96,8 +96,12 @@ def run_semantic_rules(ext: LlmInsightExtraction) -> list[SemanticFlag]:
         )
 
     cm = ext.clinical_meaningfulness.value.lower()
-    if cm == "meaningful" and not _MAGNITUDE.search(ev) and not _MAGNITUDE.search(
-        (ext.clinical_meaningfulness.reasoning_summary or "").lower()
+    if (
+        cm == "meaningful"
+        and not _MAGNITUDE.search(ev)
+        and not _MAGNITUDE.search(
+            (ext.clinical_meaningfulness.reasoning_summary or "").lower()
+        )
     ):
         flags.append(
             SemanticFlag(

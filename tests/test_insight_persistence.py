@@ -16,8 +16,18 @@ def test_incremental_jsonl_persists_each_article(tmp_path) -> None:
         requested_count=2,
         retrieved_count=2,
         articles=[
-            Article(pmid="1", title="No abstract article", abstract=None, publication_year=2020),
-            Article(pmid="2", title="Short abstract article", abstract="short", publication_year=2020),
+            Article(
+                pmid="1",
+                title="No abstract article",
+                abstract=None,
+                publication_year=2020,
+            ),
+            Article(
+                pmid="2",
+                title="Short abstract article",
+                abstract="short",
+                publication_year=2020,
+            ),
         ],
         warnings=[],
     )
@@ -33,4 +43,3 @@ def test_incremental_jsonl_persists_each_article(tmp_path) -> None:
     for line in lines:
         assert '"status":' in line
         assert '"raw_llm_text":' in line
-
