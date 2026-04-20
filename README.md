@@ -1,6 +1,17 @@
-# Article miner (PubMed JSON collector)
+## MedAssert 
+#### LLM-Powered Medical Assertion Extraction with Deterministic Trust Gates.
+MedAssert is an evidence-grounded extraction engine that transforms unstructured biomedical abstracts into verified clinical assertions. Unlike standard LLM summarizers, MedAssert enforces a "grounding-first" policy, requiring verbatim evidence spans for every finding. It utilizes a three-pass validation pipeline—LLM extraction, deterministic grounding checks, and automated risk triage—to categorize research findings by directionality, statistical significance, and clinical meaningfulness.
 
-Command-line tool that searches [PubMed](https://pubmed.ncbi.nlm.nih.gov/) via the [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25500/) (`esearch` + `efetch`), applies rate limiting and retries, and writes **flat, validated JSON** suitable for downstream pipelines.
+This Command-line tool searches [PubMed](https://pubmed.ncbi.nlm.nih.gov/) via the [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25500/) (`esearch` + `efetch`), applies rate limiting and retries, writes **flat, validated JSON** and ultimately produces structured clinical interpretations including:
+
+    Finding Direction: (Positive, Negative, Neutral, Mixed, Unclear)
+
+    Clinical Meaningfulness: Significance and impact assessment.
+
+    Verbatim Grounding: Automatic verification that evidence spans exist in the source text.
+
+    Trust Triage: Multi-pass validation to sort findings into auto_accepted vs. needs_human_review.
+
 
 ## Topics
 
