@@ -1,0 +1,35 @@
+# Local / single-host: API + optional env file
+# Usage: docker compose up --build
+# Env: copy .env.example to .env and set NCBI_API_KEY, LLM keys, etc.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: article-miner:latest
+    ports:
+      - "${ARTICLE_MINER_PORT:-8000}:8000"
+    # Uncomment if you use a local .env file:
+    # env_file:
+    #   - .env
+    environment:
+      # Override or set in .env
+      NCBI_API_KEY: ${NCBI_API_KEY:-}
+      NCBI_EMAIL: ${NCBI_EMAIL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      # Persist API file-mode outputs (output_format=file, default paths)
+      - article_miner_data:/app/article_miner_output
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  article_miner_data:

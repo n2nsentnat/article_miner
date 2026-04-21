@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "black>=26.3.1",
+    "fastapi>=0.115.0",
     "httpx>=0.28.1",
     "isort>=8.0.1",
     "litellm>=1.63.0",
@@ -18,9 +19,11 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "rapidfuzz>=3.14.3",
     "typer>=0.24.1",
+    "uvicorn[standard]>=0.34.0",
 ]
 
 [project.scripts]
+article-miner-api = "article_miner.interfaces.api.app:run"
 collect-pubmed = "article_miner.cli.collect.app:run"
 find-pubmed-dupes = "article_miner.cli.dedup.app:run"
 pubmed-workflow = "article_miner.cli.pubmed_workflow:run"

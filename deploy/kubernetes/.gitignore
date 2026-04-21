@@ -1,0 +1,4 @@
+# Local copies with real credentials
+secret.yaml
+*-secret.yaml
+!secret.example.yaml

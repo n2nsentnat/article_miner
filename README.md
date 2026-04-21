@@ -17,6 +17,7 @@ This Command-line tool searches [PubMed](https://pubmed.ncbi.nlm.nih.gov/) via t
 
 - [Requirements](README.md#requirements)
 - [Setup](README.md#setup)
+- [HTTP API (FastAPI)](README_API.md)
 - [Usage](README.md#usage)
 - [Output JSON](#output-json)
 - [LLM medical insight classification](#insights-section)
