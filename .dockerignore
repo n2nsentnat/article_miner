@@ -1,0 +1,46 @@
+# Git and VCS
+.git
+.gitignore
+
+# Python
+.venv
+venv
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+.eggs
+dist
+build
+
+# Local / IDE
+.idea
+.vscode
+*.swp
+.env
+.env.*
+!.env.example
+
+# Project artifacts (not needed in image)
+*.json
+!pyproject.toml
+dupes.md
+insight_output_report.md
+article_miner_output
+
+# Tests (runtime image does not need them)
+tests
+scripts
+
+# Docs (optional; keep README for package metadata if copied)
+*.md
+!README.md
+
+# Misc
+TODO.md
+coverage
+htmlcov

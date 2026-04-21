@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: article-miner
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  # Uncomment after editing host/TLS:
+  # - ingress.yaml
+
+# Example: pin image without editing deployment.yaml
+# images:
+#   - name: article-miner
+#     newName: ghcr.io/your-org/article-miner
+#     newTag: "0.1.0"
