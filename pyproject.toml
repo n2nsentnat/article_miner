@@ -30,10 +30,10 @@ dependencies = [
 
 [project.scripts]
 med-assert-api = "med_assert.interfaces.api.app:run"
-collect-pubmed = "med_assert.cli.collect.app:run"
-find-pubmed-dupes = "med_assert.cli.dedup.app:run"
-pubmed-workflow = "med_assert.cli.pubmed_workflow:run"
-classify-insights = "med_assert.cli.insights.app:run"
+collect-pubmed = "med_assert.interfaces.cli.collect.app:run"
+find-pubmed-dupes = "med_assert.interfaces.cli.dedup.app:run"
+pubmed-workflow = "med_assert.interfaces.cli.pubmed_workflow:run"
+classify-insights = "med_assert.interfaces.cli.insights.app:run"
 
 [dependency-groups]
 dev = [

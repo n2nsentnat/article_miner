@@ -2,6 +2,32 @@
 #### LLM-Powered Medical Assertion Extraction with Deterministic Trust Gates.
 MedAssert is an evidence-grounded extraction engine that transforms unstructured biomedical abstracts into verified clinical assertions. Unlike standard LLM summarizers, MedAssert enforces a "grounding-first" policy, requiring verbatim evidence spans for every finding. It utilizes a three-pass validation pipeline—LLM extraction, deterministic grounding checks, and automated risk triage—to categorize research findings by directionality, statistical significance, and clinical meaningfulness.
 
+## 📌 Purpose
+
+This project is a flexible and user-friendly framework for finding and validating scientific evidence for clinical search terms using external sources like PubMed, with a design that can extend to platforms such as ClinicalTrials.gov, Europe PMC, Semantic Scholar, and Google Scholar.
+
+It enables users to:
+
+- Collect and deduplicate research articles using rule-based NLP methods, with optional semantic deduplication using models like SPECTER2 + FAISS similarity search.
+- Extract clear, structured insights grounded in verifiable evidence (for example, study findings, statistical significance, and clinical relevance), with supporting text spans from source articles.
+- Validate results using evidence-backed checks.
+
+The system is designed to be simple, extensible, and accessible, allowing:
+
+- Developers to add custom metrics, rules, and logic using lightweight Python.
+- Researchers and non-technical users to adjust behavior through simple configurations or plain-text rules.
+- Integration with any LLM provider (for example, Gemini, OpenAI, and others) for insight extraction and analysis.
+
+Outputs are provided in JSON and JSONL formats, making them easy to integrate with downstream systems and analytics tools. The framework can be used as a:
+
+- CLI tool for interactive and batch workflows.
+- API service for programmatic access.
+- SDK for embedding into larger applications.
+
+This makes it easy to adapt the system to different use cases while keeping results transparent, auditable, and easy to consume.
+
+> **Note:** Currently supports PubMed only.
+
 This command-line tool searches [PubMed](https://pubmed.ncbi.nlm.nih.gov/) via the [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25500/) (`esearch` + `efetch`), applies rate limiting and retries, writes flat, validated JSON, detects probable duplicates with **rule-based matching** and an optional **SPECTER 2 embedding + FAISS** similarity layer (see [Finding probable duplicates](#finding-probable-duplicates)), and ultimately produces structured clinical interpretations including:
 
     Finding Direction: (Positive, Negative, Neutral, Mixed, Unclear)
