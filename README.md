@@ -393,4 +393,4 @@ Requires network access. The live module runs the same assertion against several
 <a id="license"></a>
 ## License
 
-Add your license here.
+This project is licensed under the [MIT License](LICENSE).
